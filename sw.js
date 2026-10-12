@@ -1,5 +1,5 @@
 /* هم‌صدا offline copy: every file is kept on the device after the first visit */
-const CACHE = 'hamseda-3ee30fce64';
+const CACHE = 'hamseda-587d02a6ae';
 const FILES = ["./", "./index.html", "./builder.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./maskable-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener('install', e => {

@@ -291,6 +291,12 @@ public class MainActivity extends Activity {
             return persianVoice;
         }
 
+        /* the adult area's exit button (the child's board never closes by itself) */
+        @JavascriptInterface
+        public void exitApp() {
+            runOnUiThread(() -> finish());
+        }
+
         @JavascriptInterface
         public void speak(final String text, final float rate) {
             runOnUiThread(() -> {
