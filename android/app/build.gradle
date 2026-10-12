@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Every build on GitHub gets a higher number, so a new APK installs over the old one and keeps the data.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+
+android {
+    namespace 'com.hamseda.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.hamseda.app'
+        minSdk 24
+        targetSdk 34
+        versionCode buildNumber
+        versionName "0.3." + buildNumber
+    }
+
+    // The same key must sign every build; GitHub decrypts it from android/signing with the SIGNING_PASSWORD secret.
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('HAMSEDA_KEYSTORE') ?: 'missing-keystore.jks')
+            storeType 'pkcs12'
+            storePassword System.getenv('HAMSEDA_STORE_PASSWORD')
+            keyAlias 'hamseda'
+            keyPassword System.getenv('HAMSEDA_STORE_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.print:print:1.0.0'
+}

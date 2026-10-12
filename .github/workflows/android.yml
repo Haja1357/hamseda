@@ -1,0 +1,70 @@
+# Builds the Android app (هم‌صدا with everything inside it) on every change,
+# and puts hamseda.apk next to the web app so it can be downloaded from the site.
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['hamseda.apk']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Put the web app inside the Android project
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp index.html builder.html manifest.webmanifest icon-192.png icon-512.png apple-touch-icon.png android/app/src/main/assets/
+
+      - name: Unlock the signing key
+        env:
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$SIGNING_PASSWORD" ]; then
+            echo "::error::The SIGNING_PASSWORD secret is missing (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSWORD \
+            -in android/signing/release.jks.enc -out "$RUNNER_TEMP/release.jks"
+          echo "HAMSEDA_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build the APK
+        working-directory: android
+        env:
+          HAMSEDA_STORE_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: gradle --no-daemon --stacktrace assembleRelease
+
+      - name: Publish hamseda.apk on the site
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk hamseda.apk
+          git config user.name "hamseda-build"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hamseda.apk
+          if git commit -m "Android build ${{ github.run_number }}"; then
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hamseda-apk-${{ github.run_number }}
+          path: hamseda.apk

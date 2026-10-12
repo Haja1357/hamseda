@@ -1,0 +1,10 @@
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/index.html
+android/app/src/main/assets/builder.html
+android/app/src/main/assets/*.png
+android/app/src/main/assets/manifest.webmanifest
+*.jks
+.DS_Store
