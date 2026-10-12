@@ -40,8 +40,8 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           if [ -z "$SIGNING_PASSWORD" ]; then
-            echo "::error::The SIGNING_PASSWORD secret is missing (Settings > Secrets and variables > Actions)."
-            exit 1
+            echo "::warning::The SIGNING_PASSWORD secret is missing (Settings > Secrets and variables > Actions). Only a test build will run."
+            exit 0
           fi
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SIGNING_PASSWORD \
             -in android/signing/release.jks.enc -out "$RUNNER_TEMP/release.jks"
@@ -51,7 +51,18 @@ jobs:
         working-directory: android
         env:
           HAMSEDA_STORE_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: gradle --no-daemon --stacktrace assembleRelease
+        run: |
+          if [ -n "$HAMSEDA_KEYSTORE" ]; then
+            gradle --no-daemon --stacktrace assembleRelease
+          else
+            gradle --no-daemon --stacktrace assembleDebug
+          fi
+
+      - name: Stop here without the signing key
+        if: env.HAMSEDA_KEYSTORE == ''
+        run: |
+          echo "::error::The test build worked, but hamseda.apk was not published: add the SIGNING_PASSWORD secret and run this workflow again."
+          exit 1
 
       - name: Publish hamseda.apk on the site
         run: |
